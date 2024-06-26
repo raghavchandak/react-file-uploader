@@ -46,7 +46,7 @@ app.get("/files/:id", async (req, res) => {
       return res.status(404).send({ status: "Not Found" });
     }
     // res.set("Content-Type", doc.type);
-    res.send(doc);
+    res.send(doc?.doc?.data);
   } catch (e) {
     res.status(500).send({ status: e.message });
   }
