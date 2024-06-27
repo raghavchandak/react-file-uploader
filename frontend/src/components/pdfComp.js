@@ -1,35 +1,61 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Document, Page } from "react-pdf";
 import "../styles/pdfComp.css";
+import { convertDocx } from "../api";
 
-function PdfComp({ pdf }) {
-  const [numPages, setNumPages] = useState();
-  const [pageNumber, setPageNumber] = useState(1);
+const PdfComp = ({ pdf, type, name }) => {
+  const [numPages, setNumPages] = useState(null);
+  const [displayedDocx, setDisplayedDocx] = useState(null);
 
+  useEffect(() => {
+    const docxFileHandler = async (buffer) => {
+      try {
+        const response = await convertDocx(buffer.data);
+        const arrayBuf = response.data;
+        const uint8Array = new Uint8Array(arrayBuf);
+        const simpleArray = Array.from(uint8Array);
+        setDisplayedDocx(simpleArray);
+      } catch (error) {
+        console.error("Error converting docx:", error);
+      }
+    };
+
+    if (type.typedoc === "application/pdf") {
+      setDisplayedDocx(pdf.data);
+    } else {
+      docxFileHandler(pdf);
+    }
+  }, [pdf, type]);
   function onDocumentLoadSuccess({ numPages }) {
-    setNumPages(numPages);
+    setNumPages(numPages); 
   }
 
-  return (
-    <div className="container">
-      <Document file={pdf} onLoadSuccess={onDocumentLoadSuccess}>
-        {Array.apply(null, Array(numPages))
-          .map((x, i) => i + 1)
-          .map((page) => {
-            return (
+  const filesystem = useMemo(
+    () =>
+      displayedDocx ? (
+        <div className="container">
+          <Document
+            file={{ data: displayedDocx }}
+            onLoadSuccess={onDocumentLoadSuccess}
+          >
+            {Array.from(new Array(numPages), (el, index) => (
               <Page
-                pageNumber={page}
+                key={`page_${index + 1}`}
+                pageNumber={index + 1}
                 renderTextLayer={false}
                 renderAnnotationLayer={false}
               />
-            );
-          })}
-      </Document>
-      <p>
-        Page {pageNumber} of {numPages}
-      </p>
-    </div>
+            ))}
+          </Document>
+          <p>Page {numPages ? `1 of ${numPages}` : "Loading..."}</p>
+        </div>
+      ) : (
+        <div style={{ margin: "3rem" }}>Loading PDF/Word...</div>
+      ),
+    [displayedDocx, numPages]
   );
-}
+
+  return filesystem;
+};
 
 export default PdfComp;

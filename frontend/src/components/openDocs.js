@@ -1,18 +1,48 @@
 import * as React from "react";
-import Button from "@mui/joy/Button";
 import Modal from "@mui/joy/Modal";
 import ModalClose from "@mui/joy/ModalClose";
 import Sheet from "@mui/joy/Sheet";
-import PdfComp from "./pdfComp";
+import PdfComp from "./pdfComp"; 
 
 const arrayBufferToBase64 = (buffer) => {
   var binary = "";
-  var bytes = [].slice.call(new Uint8Array(buffer));
+  var bytes = new Uint8Array(buffer);
   bytes.forEach((b) => (binary += String.fromCharCode(b)));
   return window.btoa(binary);
 };
 
 export default function BasicModal({ open, handleClose, docs }) {
+  const DisplayDocs = (doc, i) => {
+    const bufferData = doc?.doc?.data;
+    var typedoc = doc.type;
+    if (
+      doc.type === "application/pdf" ||
+      doc.type ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
+      return (
+        <PdfComp
+          pdf={{ data: bufferData }}
+          type={{ typedoc }}
+          name={`pdf-${i}`}
+        />
+      );
+
+    } else {
+      return (
+        <img
+          key={i}
+          src={`data:image/jpeg;base64,${arrayBufferToBase64(doc?.doc?.data)}`}
+          alt="img"
+          style={{
+            maxWidth: "30vw",
+            objectFit: "contain",
+          }}
+        />
+      );
+    }
+  };
+
   return (
     <React.Fragment>
       <Modal
@@ -39,30 +69,10 @@ export default function BasicModal({ open, handleClose, docs }) {
         >
           <ModalClose variant="plain" sx={{ m: 1 }} />
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            {docs?.map((doc) => {
-              return doc.type === "pdf" ? (
-                <PdfComp pdf={{ data: doc?.doc?.data }} />
-              ) : (
-                <img
-                  src={`data:image/jpeg;base64,${arrayBufferToBase64(
-                    doc?.doc?.data
-                  )}`}
-                  alt="img"
-                  style={{
-                    maxWidth: "30vw",
-                    objectFit: "contain",
-                  }}
-                />
-              );
-            })}
+            {docs?.map((doc, i) => (
+              <div key={doc._id || i}>{DisplayDocs(doc, i)}</div>
+            ))}
           </div>
-
-          {/* <iframe
-            title="pdf"
-            src={`data:image/jpeg;base64,${arrayBufferToBase64(
-              docs[0]?.doc?.doc?.data
-            )}`}
-          ></iframe> */}
         </Sheet>
       </Modal>
     </React.Fragment>

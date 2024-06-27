@@ -13,3 +13,9 @@ export const uploadFile = (data) => {
 export const fetchFiles = () => {
   return api.get("fetch-docs");
 };
+
+export const convertDocx = (data) => {
+  return api.post("view/docx", data, {
+    responseType: "arraybuffer",
+  });
+};

@@ -2,16 +2,19 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import multer from "multer";
+import mammoth from "mammoth";
+import puppeteer from "puppeteer";
+import "dotenv/config";
 import "./models/docs.js";
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
 
 // Database connection
 mongoose
   .connect(
-    "mongodb+srv://raghav:Sachinmessi%4010@twokey.njamp3t.mongodb.net/assessment?retryWrites=true&w=majority&appName=TwoKey"
+    `mongodb+srv://raghav:${process.env.PASSWORD}@twokey.njamp3t.mongodb.net/assessment?retryWrites=true&w=majority&appName=TwoKey`
   )
   .then(() => console.log("Connected to database"))
   .catch((e) => console.log(e));
@@ -26,6 +29,18 @@ app.get("/fetch-docs", async (req, res) => {
   res.send(allDocs);
 });
 
+app.post("/view/docx", async (req, res) => {
+  const buffer = Buffer.from(req.body);
+  const { value: html } = await mammoth.convertToHtml({ buffer });
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.setContent(html);
+  const pdfBuffer = await page.pdf({ format: "A4" });
+  await browser.close();
+  res.setHeader("Content-Type", "application/pdf");
+  res.send(pdfBuffer);
+});
+
 app.post("/upload", upload.single("file"), (req, res) => {
   try {
     docs.create({
@@ -36,19 +51,6 @@ app.post("/upload", upload.single("file"), (req, res) => {
     res.send({ status: "Created" });
   } catch (e) {
     res.send({ status: e });
-  }
-});
-
-app.get("/files/:id", async (req, res) => {
-  try {
-    const doc = await docs.findById(req.params.id);
-    if (!doc) {
-      return res.status(404).send({ status: "Not Found" });
-    }
-    // res.set("Content-Type", doc.type);
-    res.send(doc?.doc?.data);
-  } catch (e) {
-    res.status(500).send({ status: e.message });
   }
 });
 
